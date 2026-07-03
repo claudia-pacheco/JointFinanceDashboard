@@ -4,7 +4,9 @@ import { getAccounts, type Bill, type Subscription, type CreditAccount, type Sav
 const fmt = (n: number, dec = 0) =>
   "£" + Math.abs(n).toLocaleString("en-GB", { minimumFractionDigits: dec, maximumFractionDigits: dec });
 
-export default function AccountsPage() {
+type Props = { currentMonthLabel: string };
+
+export default function AccountsPage({ currentMonthLabel }: Props) {
   const [bills, setBills] = useState<Bill[]>([]);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [credit, setCredit] = useState<CreditAccount[]>([]);
@@ -12,6 +14,8 @@ export default function AccountsPage() {
   const [loading, setLoading] = useState(true);
 
   const refreshAccounts = () => {
+    setLoading(true);
+
     getAccounts()
       .then((data) => {
         setBills(data.bills);
@@ -21,6 +25,9 @@ export default function AccountsPage() {
       })
       .catch((error) => {
         console.error("Unable to load accounts:", error);
+      })
+      .finally(() => {
+        setLoading(false);
       });
   };
 
@@ -84,8 +91,8 @@ export default function AccountsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h2 className="font-display font-semibold text-navy text-lg">Accounts & Pots</h2>
-        <p className="text-slate text-sm font-display mt-0.5">Your joint account breakdown</p>
+        <h2 className="font-display font-semibold text-navy text-lg">Your joint account breakdown</h2>
+        <p className="text-sm text-slate mt-1">{currentMonthLabel}</p>
       </div>
 
       {/* Current account */}
@@ -95,9 +102,6 @@ export default function AccountsPage() {
             <p className="text-xs font-display text-slate uppercase tracking-widest font-medium">Joint Current Account</p>
             <p className="font-mono-data text-3xl font-semibold text-navy mt-1">£12,840.00</p>
             <p className="text-sm text-slate font-display mt-1">Available balance</p>
-          </div>
-          <div className="bg-navy rounded-lg px-3 py-1.5">
-            <span className="text-white text-xs font-display font-medium">● Live</span>
           </div>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2 border-t border-border">
@@ -163,33 +167,6 @@ export default function AccountsPage() {
         </div>
       </div>
 
-      {/* Savings detail */}
-      <div className="bg-card border border-border rounded-xl p-5">
-        <div className="mb-4">
-          <p className="text-xs font-display text-slate uppercase tracking-widest font-medium">Savings Pot</p>
-          <p className="font-display font-semibold text-navy mt-0.5">Saved — {fmt(savingsTotal)}</p>
-        </div>
-        <div className="divide-y divide-border">
-          {savingsGoals.map((goal) => {
-            const pct = Math.round((goal.current / goal.target) * 100);
-            return (
-              <div key={goal.id} className="py-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-base">{goal.emoji}</span>
-                    <span className="text-sm font-display text-navy">{goal.name}</span>
-                  </div>
-                  <span className="text-xs font-mono-data text-slate">{pct}%</span>
-                </div>
-                <div className="h-2 bg-border rounded-full overflow-hidden mt-2">
-                  <div className="h-full rounded-full bg-emerald" style={{ width: `${Math.min(pct, 100)}%` }} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
       {/* Credit detail */}
       <div className="bg-card border border-border rounded-xl p-5">
         <div className="mb-4">
@@ -225,6 +202,35 @@ export default function AccountsPage() {
           })}
         </div>
       </div>
+
+      {/* Savings detail */}
+      <div className="bg-card border border-border rounded-xl p-5">
+        <div className="mb-4">
+          <p className="text-xs font-display text-slate uppercase tracking-widest font-medium">Savings Pot</p>
+          <p className="font-display font-semibold text-navy mt-0.5">Saved — {fmt(savingsTotal)}</p>
+        </div>
+        <div className="divide-y divide-border">
+          {savingsGoals.map((goal) => {
+            const pct = Math.round((goal.current / goal.target) * 100);
+            return (
+              <div key={goal.id} className="py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-base">{goal.emoji}</span>
+                    <span className="text-sm font-display text-navy">{goal.name}</span>
+                  </div>
+                  <span className="text-xs font-mono-data text-slate">{pct}%</span>
+                </div>
+                <div className="h-2 bg-border rounded-full overflow-hidden mt-2">
+                  <div className="h-full rounded-full bg-emerald" style={{ width: `${Math.min(pct, 100)}%` }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      
     </div>
   );
 }

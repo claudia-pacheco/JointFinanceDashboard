@@ -1,59 +1,22 @@
-import { useEffect, useState } from "react";
 import StatCard from "../components/StatCard";
-import OverviewChart from "../components/OverviewChart";
 import PotsPanel from "../components/PotsPanel";
-import { getAccounts, getOverview, type Bill, type Subscription, type CreditAccount, type SavingsGoal } from "../services/api";
+import {
+  netWorth, monthlyOut, savingsTotal, creditTotal, billsTotal, subsTotal,
+} from "../data/mockData";
 
-type Props = { totalIncome: number };
-
-type OverviewData = {
-  bills: Bill[];
-  subscriptions: Subscription[];
-  credit: CreditAccount[];
-  savingsGoals: SavingsGoal[];
-};
+type Props = { totalIncome: number; currentMonthLabel: string };
 
 const fmt = (n: number) =>
   "£" + Math.abs(n).toLocaleString("en-GB", { maximumFractionDigits: 0 });
 
-export default function OverviewPage({ totalIncome }: Props) {
-  const [accounts, setAccounts] = useState<OverviewData | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const refreshAccounts = () => {
-    getAccounts()
-      .then((accountsData) => {
-        setAccounts(accountsData);
-      })
-      .catch((error) => console.error("Unable to load overview data:", error));
-  };
-
-  useEffect(() => {
-    Promise.all([getAccounts(), getOverview()])
-      .then(([accountsData]) => {
-        setAccounts(accountsData);
-      })
-      .catch((error) => console.error("Unable to load overview data:", error))
-      .finally(() => setLoading(false));
-
-    const handleBudgetChange = () => refreshAccounts();
-    window.addEventListener("budgetDataChanged", handleBudgetChange);
-    return () => window.removeEventListener("budgetDataChanged", handleBudgetChange);
-  }, []);
-
-  const billsTotal = accounts ? accounts.bills.reduce((s, b) => s + b.amount, 0) : 0;
-  const subsTotal = accounts ? accounts.subscriptions.reduce((s, sItem) => s + sItem.amount, 0) : 0;
-  const creditTotal = accounts ? accounts.credit.reduce((s, c) => s + c.balance, 0) : 0;
-  const savingsTotal = accounts ? accounts.savingsGoals.reduce((s, g) => s + g.current, 0) : 0;
-  const monthlyOut = billsTotal + subsTotal;
-  const netWorth = savingsTotal - creditTotal + 12840;
-
-  if (loading) {
-    return <div className="text-slate text-sm font-display">Loading dashboard overview…</div>;
-  }
-
+export default function OverviewPage({ totalIncome, currentMonthLabel }: Props) {
   return (
     <div className="flex flex-col gap-4 md:gap-6">
+      <div className="rounded-2xl border border-border bg-card p-4 md:p-5">
+        <p className="text-xs font-display uppercase tracking-widest text-slate">Overview for</p>
+        <p className="mt-1 text-lg font-semibold text-navy">{currentMonthLabel}</p>
+      </div>
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <div className="col-span-2 md:col-span-1">
           <StatCard
@@ -69,7 +32,7 @@ export default function OverviewPage({ totalIncome }: Props) {
           subtext="Payroll · Jul 1"
         />
         <StatCard
-          label="Bills & Subs"
+          label="Bills & Subscriptions"
           value={fmt(monthlyOut)}
           subtext={`£${billsTotal} bills · £${subsTotal.toFixed(2)} subs`}
         />
@@ -81,9 +44,9 @@ export default function OverviewPage({ totalIncome }: Props) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-[1fr_360px] gap-4">
-        <OverviewChart totalIncome={totalIncome} />
         <PotsPanel />
       </div>
+
     </div>
   );
 }

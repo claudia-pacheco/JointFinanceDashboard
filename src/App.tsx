@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Sidebar, { type Page } from "./components/Sidebar";
 import OverviewPage from "./pages/OverviewPage";
 import AccountsPage from "./pages/AccountsPage";
@@ -7,8 +7,39 @@ import GoalsPage from "./pages/GoalsPage";
 import SettingsPage from "./pages/SettingsPage";
 
 type Income = { cp: number; sb: number; cpName: string; sbName: string; payday: number };
+type SelectedMonth = { month: number; year: number };
 
 const defaultIncome: Income = { cp: 2400, sb: 2400, cpName: "CP", sbName: "SB", payday: 1 };
+
+const getInitialSelectedMonth = (): SelectedMonth => {
+  const now = new Date();
+  return { month: now.getMonth(), year: now.getFullYear() };
+};
+
+const pageToPath: Record<Page, string> = {
+  overview: "/overview",
+  accounts: "/accounts",
+  budgets: "/budgets",
+  goals: "/goals",
+  settings: "/settings",
+};
+
+const pathToPage = (pathname: string): Page => {
+  switch (pathname) {
+    case "/accounts":
+      return "accounts";
+    case "/budgets":
+      return "budgets";
+    case "/goals":
+      return "goals";
+    case "/settings":
+      return "settings";
+    case "/overview":
+    case "/":
+    default:
+      return "overview";
+  }
+};
 
 function loadIncome(): Income {
   try {
@@ -28,13 +59,35 @@ const pageTitles: Record<Page, string> = {
 };
 
 export default function App() {
-  const [page, setPage]       = useState<Page>("overview");
+  const [page, setPage] = useState<Page>(() => pathToPage(window.location.pathname));
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [income, setIncome]   = useState<Income>(loadIncome);
+  const [income, setIncome] = useState<Income>(loadIncome);
+  const [selectedMonth, setSelectedMonth] = useState<SelectedMonth>(getInitialSelectedMonth);
+  const currentMonthLabel = new Intl.DateTimeFormat("en-GB", {
+    month: "long",
+    year: "numeric",
+  }).format(new Date());
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setPage(pathToPage(window.location.pathname));
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   const handleSaveIncome = (next: Income) => {
     setIncome(next);
     localStorage.setItem("folio-income", JSON.stringify(next));
+  };
+
+  const handleNavigate = (nextPage: Page) => {
+    setPage(nextPage);
+    const nextPath = pageToPath[nextPage];
+    if (window.location.pathname !== nextPath) {
+      window.history.pushState({}, "", nextPath);
+    }
   };
 
   const totalIncome = (income.cp || 0) + (income.sb || 0);
@@ -43,8 +96,8 @@ export default function App() {
   return (
     <div className="flex min-h-screen bg-background">
       {/* Desktop sidebar */}
-      <div className="hidden md:flex md:flex-col md:w-56 md:min-h-screen shrink-0">
-        <Sidebar active={page} onNavigate={setPage} names={names} />
+      <div className="hidden md:flex md:w-56 md:shrink-0 md:sticky md:top-0 md:h-screen">
+        <Sidebar active={page} onNavigate={handleNavigate} names={names} />
       </div>
 
       {/* Mobile drawer */}
@@ -52,7 +105,7 @@ export default function App() {
         <div className="fixed inset-0 z-50 flex md:hidden">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setDrawerOpen(false)} />
           <div className="relative z-10 flex h-full">
-            <Sidebar active={page} onNavigate={setPage} onClose={() => setDrawerOpen(false)} names={names} />
+            <Sidebar active={page} onNavigate={handleNavigate} onClose={() => setDrawerOpen(false)} names={names} />
           </div>
         </div>
       )}
@@ -76,7 +129,7 @@ export default function App() {
                 {pageTitles[page]}
               </h1>
               <p className="text-slate text-xs md:text-sm font-display mt-0.5 truncate">
-                July 2026 · All pots up to date
+                {currentMonthLabel} · All pots up to date
               </p>
             </div>
           </div>
@@ -93,9 +146,15 @@ export default function App() {
         {/* Page content */}
         <main className="flex-1 overflow-y-auto px-4 md:px-8 py-5 md:py-7">
           <div className="max-w-6xl mx-auto">
-            {page === "overview" && <OverviewPage totalIncome={totalIncome} />}
-            {page === "accounts" && <AccountsPage />}
-            {page === "budgets" && <BudgetsPage />}
+            {page === "overview" && <OverviewPage totalIncome={totalIncome} currentMonthLabel={currentMonthLabel} />}
+            {page === "accounts" && <AccountsPage currentMonthLabel={currentMonthLabel} />}
+            {page === "budgets" && (
+              <BudgetsPage
+                currentMonthLabel={currentMonthLabel}
+                selectedMonth={selectedMonth}
+                onMonthSelect={setSelectedMonth}
+              />
+            )}
             {page === "goals" && <GoalsPage />}
             {page === "settings" && <SettingsPage income={income} onSave={handleSaveIncome} />}
           </div>

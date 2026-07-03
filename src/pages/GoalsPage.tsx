@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { getGoals, updateGoal, type SavingsGoal } from "../services/api";
 
 const fmt = (n: number) =>
@@ -12,24 +12,38 @@ type EditableGoalCardProps = {
 };
 
 function EditableGoalCard({ goal, onSave }: EditableGoalCardProps) {
-  const [editing, setEditing] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [name, setName] = useState(goal.name);
   const [current, setCurrent] = useState(goal.current.toString());
   const [target, setTarget] = useState(goal.target.toString());
 
   useEffect(() => {
-    if (!editing) {
+    if (!isModalOpen) {
       setName(goal.name);
       setCurrent(goal.current.toString());
       setTarget(goal.target.toString());
     }
-  }, [goal, editing]);
+  }, [goal, isModalOpen]);
 
   const displayCurrent = Number(current) || 0;
   const displayTarget = Number(target) || 1;
   const pct = Math.round((displayCurrent / displayTarget) * 100);
   const remaining = Math.max(displayTarget - displayCurrent, 0);
   const monthsToGo = Math.ceil(remaining / 200);
+
+  const openModal = () => {
+    setName(goal.name);
+    setCurrent(goal.current.toString());
+    setTarget(goal.target.toString());
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setName(goal.name);
+    setCurrent(goal.current.toString());
+    setTarget(goal.target.toString());
+    setIsModalOpen(false);
+  };
 
   const save = () => {
     onSave({
@@ -38,118 +52,142 @@ function EditableGoalCard({ goal, onSave }: EditableGoalCardProps) {
       current: Number(current) || 0,
       target: Number(target) || 0,
     });
-    setEditing(false);
+    setIsModalOpen(false);
   };
 
-  const cancel = () => {
-    setName(goal.name);
-    setCurrent(goal.current.toString());
-    setTarget(goal.target.toString());
-    setEditing(false);
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    save();
   };
 
   return (
-    <div className="bg-card border border-border rounded-xl p-5 flex flex-col gap-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <span className="text-2xl">{goal.emoji}</span>
-          <div className="min-w-0">
-            {editing ? (
-              <input
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold text-navy focus:outline-none focus:ring-2 focus:ring-navy/30"
-              />
-            ) : (
+    <>
+      <div className="bg-card border border-border rounded-xl p-5 flex flex-col gap-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="text-2xl">{goal.emoji}</span>
+            <div className="min-w-0">
               <p className="font-display font-semibold text-navy text-sm truncate">{goal.name}</p>
-            )}
-            <p className="text-xs text-slate font-display mt-0.5">
-              {remaining > 0 ? `${fmt(remaining)} to go` : "Goal reached! 🎉"}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex flex-col items-end gap-2">
-          {editing ? (
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={save}
-                className="rounded-lg bg-navy px-3 py-1 text-xs font-semibold text-white"
-              >
-                Save
-              </button>
-              <button
-                type="button"
-                onClick={cancel}
-                className="rounded-lg border border-border bg-white px-3 py-1 text-xs font-medium text-slate"
-              >
-                Cancel
-              </button>
+              <p className="text-xs text-slate font-display mt-0.5">
+                {remaining > 0 ? `${fmt(remaining)} to go` : "Goal reached! 🎉"}
+              </p>
             </div>
-          ) : (
+          </div>
+
+          <div className="flex flex-col items-end gap-2">
             <button
               type="button"
-              onClick={() => setEditing(true)}
+              onClick={openModal}
               className="rounded-full border border-border bg-white px-3 py-1 text-xs font-medium text-slate hover:bg-slate-50"
             >
               Edit
             </button>
-          )}
-          <span className="font-mono-data text-lg font-semibold text-navy shrink-0">{pct}%</span>
+            <span className="font-mono-data text-lg font-semibold text-navy shrink-0">{pct}%</span>
+          </div>
         </div>
-      </div>
 
-      <div className="space-y-1.5">
-        <div className="h-3 bg-border rounded-full overflow-hidden">
-          <div
-            className="h-full rounded-full transition-all"
-            style={{ width: `${Math.min(pct, 100)}%`, background: goal.color }}
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-2 text-xs font-mono-data text-slate">
-          <div>
-            <p className="text-slate">Saved</p>
-            {editing ? (
-              <input
-                value={current}
-                onChange={(event) => setCurrent(event.target.value)}
-                type="number"
-                className="mt-1 w-full rounded-lg border border-border bg-background px-2 py-1 text-sm text-navy focus:outline-none focus:ring-2 focus:ring-navy/30"
-              />
-            ) : (
+        <div className="space-y-1.5">
+          <div className="h-3 bg-border rounded-full overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all"
+              style={{ width: `${Math.min(pct, 100)}%`, background: goal.color }}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-xs font-mono-data text-slate">
+            <div>
+              <p className="text-slate">Saved</p>
               <p className="mt-1 font-semibold text-navy">{fmt(goal.current)}</p>
-            )}
+            </div>
+            <div>
+              <p className="text-slate">Target</p>
+              <p className="mt-1 font-semibold text-navy">{fmt(goal.target)}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border text-xs text-slate">
+          <div>
+            <p className="font-display">Remaining</p>
+            <p className="font-mono-data text-sm font-semibold text-navy mt-0.5">{fmt(remaining)}</p>
           </div>
           <div>
-            <p className="text-slate">Target</p>
-            {editing ? (
-              <input
-                value={target}
-                onChange={(event) => setTarget(event.target.value)}
-                type="number"
-                className="mt-1 w-full rounded-lg border border-border bg-background px-2 py-1 text-sm text-navy focus:outline-none focus:ring-2 focus:ring-navy/30"
-              />
-            ) : (
-              <p className="mt-1 font-semibold text-navy">{fmt(goal.target)}</p>
-            )}
+            <p className="font-display">Est. months</p>
+            <p className="font-mono-data text-sm font-semibold text-navy mt-0.5">
+              {remaining > 0 ? `~${monthsToGo} mo` : "Done"}
+            </p>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border text-xs text-slate">
-        <div>
-          <p className="font-display">Remaining</p>
-          <p className="font-mono-data text-sm font-semibold text-navy mt-0.5">{fmt(remaining)}</p>
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy/70 p-4">
+          <form onSubmit={handleSubmit} className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-display uppercase tracking-[0.3em] text-slate">Edit goal</p>
+                <h3 className="mt-1 font-display font-semibold text-navy text-lg">{goal.name}</h3>
+              </div>
+              <button
+                type="button"
+                onClick={closeModal}
+                className="rounded-full border border-border bg-white px-2.5 py-1 text-sm text-slate"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-4">
+              <label className="block">
+                <span className="mb-1 block text-sm font-medium text-slate">Goal name</span>
+                <input
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold text-navy focus:outline-none focus:ring-2 focus:ring-navy/30"
+                />
+              </label>
+
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block">
+                  <span className="mb-1 block text-sm font-medium text-slate">Saved</span>
+                  <input
+                    value={current}
+                    onChange={(event) => setCurrent(event.target.value)}
+                    type="number"
+                    className="w-full rounded-lg border border-border bg-background px-2 py-2 text-sm text-navy focus:outline-none focus:ring-2 focus:ring-navy/30"
+                  />
+                </label>
+                <label className="block">
+                  <span className="mb-1 block text-sm font-medium text-slate">Target</span>
+                  <input
+                    value={target}
+                    onChange={(event) => setTarget(event.target.value)}
+                    type="number"
+                    className="w-full rounded-lg border border-border bg-background px-2 py-2 text-sm text-navy focus:outline-none focus:ring-2 focus:ring-navy/30"
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeModal}
+                className="rounded-lg border border-border bg-white px-3 py-2 text-sm font-medium text-slate"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={save}
+                className="rounded-lg bg-navy px-3 py-2 text-sm font-semibold text-white"
+              >
+                Save changes
+              </button>
+            </div>
+          </form>
         </div>
-        <div>
-          <p className="font-display">Est. months</p>
-          <p className="font-mono-data text-sm font-semibold text-navy mt-0.5">
-            {remaining > 0 ? `~${monthsToGo} mo` : "Done"}
-          </p>
-        </div>
-      </div>
-    </div>
+      )}
+    </>
   );
 }
 
@@ -175,8 +213,7 @@ export default function GoalsPage() {
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <h2 className="font-display font-semibold text-navy text-lg">Goals</h2>
-        <p className="text-slate text-sm font-display mt-0.5">Savings progress towards your targets</p>
+        <h2 className="font-display font-semibold text-navy text-lg">Savings progress towards your targets</h2>
       </div>
 
       {/* Overall */}

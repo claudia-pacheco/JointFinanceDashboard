@@ -24,6 +24,5 @@ export const getOverview = () => apiFetch<{ income: Income; monthlyOverview: Mon
 export const getAccounts = () => apiFetch<{ bills: Bill[]; subscriptions: Subscription[]; credit: CreditAccount[]; savingsGoals: SavingsGoal[] }>("/api/accounts");
 export const getBudgets = () => apiFetch<{ bills: Bill[]; subscriptions: Subscription[]; credit: CreditAccount[]; savings: SavingsGoal[] }>("/api/budgets");
 export const postBudgetItem = (type: string, payload: Record<string, unknown>) => apiFetch<unknown>(`/api/budgets/${type}`, { method: "POST", body: JSON.stringify(payload) });
-export const putBudgetItem = (type: string, id: string, payload: Record<string, unknown>) => apiFetch<unknown>(`/api/budgets/${type}/${id}`, { method: "PUT", body: JSON.stringify(payload) });
-export const getGoals = () => apiFetch<SavingsGoal[]>("/api/goals");
+export const putBudgetItem = (type: string, id: string, payload: Record<string, unknown>) => apiFetch<unknown>(`/api/budgets/${type}/${id}`, { method: "PUT", body: JSON.stringify(payload) });export const deleteBudgetItem = (type: string, id: string) => apiFetch<unknown>(`/api/budgets/${type}/${id}`, { method: 'DELETE' });export const getGoals = () => apiFetch<SavingsGoal[]>("/api/goals");
 export const updateGoal = (id: string, payload: Partial<SavingsGoal>) => apiFetch<SavingsGoal>(`/api/goals/${id}`, { method: "PUT", body: JSON.stringify(payload) });

@@ -20,7 +20,7 @@ export default function PotsPanel() {
   const [credit, setCredit] = useState<CreditAccount[]>([]);
   const [savingsGoals, setSavingsGoals] = useState<SavingsGoal[]>([]);
 
-  const refreshAccounts = () => {
+  useEffect(() => {
     getAccounts()
       .then((data) => {
         setBills(data.bills);
@@ -31,13 +31,6 @@ export default function PotsPanel() {
       .catch((error) => {
         console.error("Unable to load account pots:", error);
       });
-  };
-
-  useEffect(() => {
-    refreshAccounts();
-    const handleBudgetChange = () => refreshAccounts();
-    window.addEventListener("budgetDataChanged", handleBudgetChange);
-    return () => window.removeEventListener("budgetDataChanged", handleBudgetChange);
   }, []);
 
   const billsTotal = bills.reduce((s, b) => s + b.amount, 0);

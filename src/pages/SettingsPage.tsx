@@ -22,8 +22,7 @@ export default function SettingsPage({ income, onSave }: Props) {
   return (
     <div className="flex flex-col gap-6 max-w-xl">
       <div>
-        <h2 className="font-display font-semibold text-navy text-lg">Settings</h2>
-        <p className="text-slate text-sm font-display mt-0.5">Manage your account details</p>
+        <h2 className="font-display font-semibold text-navy text-lg">Manage your account details</h2>
       </div>
 
       {/* Income section */}

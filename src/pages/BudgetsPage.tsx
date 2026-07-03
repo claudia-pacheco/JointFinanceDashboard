@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
+  deleteBudgetItem,
   getBudgets,
   postBudgetItem,
   putBudgetItem,
@@ -13,95 +14,288 @@ const fmt = (n: number, dec = 0) =>
   "£" + n.toLocaleString("en-GB", { minimumFractionDigits: dec, maximumFractionDigits: dec });
 
 type Tab = "bills" | "subscriptions" | "credit" | "savings";
-
+type SelectedMonth = { month: number; year: number };
 type BudgetItem = { id: string; name: string; amount: number; [key: string]: any };
-
-type BudgetData = {
-  bills: Bill[];
-  subscriptions: Subscription[];
-  credit: CreditAccount[];
-  savings: SavingsGoal[];
-};
 
 type EditableBudgetRowProps<T extends BudgetItem> = {
   item: T;
   onSave: (item: T) => void;
+  onDelete: (item: T) => void;
   note?: string;
+  tab: Tab;
 };
 
-function EditableBudgetRow<T extends BudgetItem>({ item, onSave, note }: EditableBudgetRowProps<T>) {
-  const [editing, setEditing] = useState(false);
+function EditableBudgetRow<T extends BudgetItem>({ item, onSave, onDelete, note, tab }: EditableBudgetRowProps<T>) {
+  const [modalType, setModalType] = useState<"edit" | "delete" | null>(null);
   const [draftName, setDraftName] = useState(item.name);
   const [draftAmount, setDraftAmount] = useState(item.amount.toFixed(2));
+  const [draftPaid, setDraftPaid] = useState(Boolean((item as any).paid));
+  const [draftDueDay, setDraftDueDay] = useState(Number((item as any).dueDay ?? 1));
+  const [draftBilledOn, setDraftBilledOn] = useState((item as any).billedOn ?? "Monthly");
+  const [draftCreditLimit, setDraftCreditLimit] = useState(((item as any).limit ?? 0).toFixed(2));
+  const [draftCreditMinPayment, setDraftCreditMinPayment] = useState(((item as any).minPayment ?? 0).toFixed(2));
+  const [draftCreditApr, setDraftCreditApr] = useState(String((item as any).apr ?? 0));
+  const [draftRecurring, setDraftRecurring] = useState(Boolean((item as any).recurring));
+  const [draftSavingsTarget, setDraftSavingsTarget] = useState(((item as any).target ?? item.amount).toFixed(2));
+  const [draftSavingsCurrent, setDraftSavingsCurrent] = useState(((item as any).current ?? 0).toFixed(2));
+  const [draftEmoji, setDraftEmoji] = useState((item as any).emoji ?? "💰");
+  const [draftColor, setDraftColor] = useState((item as any).color ?? "#059669");
 
-  const cancel = () => {
+  const openEditor = () => {
     setDraftName(item.name);
     setDraftAmount(item.amount.toFixed(2));
-    setEditing(false);
+    setDraftPaid(Boolean((item as any).paid));
+    setDraftDueDay(Number((item as any).dueDay ?? 1));
+    setDraftBilledOn((item as any).billedOn ?? "Monthly");
+    setDraftCreditLimit(((item as any).limit ?? 0).toFixed(2));
+    setDraftCreditMinPayment(((item as any).minPayment ?? 0).toFixed(2));
+    setDraftCreditApr(String((item as any).apr ?? 0));
+    setDraftRecurring(Boolean((item as any).recurring));
+    setDraftSavingsTarget(((item as any).target ?? item.amount).toFixed(2));
+    setDraftSavingsCurrent(((item as any).current ?? 0).toFixed(2));
+    setDraftEmoji((item as any).emoji ?? "💰");
+    setDraftColor((item as any).color ?? "#059669");
+    setModalType("edit");
   };
+
+  const closeModal = () => setModalType(null);
 
   const save = () => {
     const nextAmount = Number(draftAmount.replace(/[^0-9.-]+/g, "")) || 0;
-    onSave({ ...item, name: draftName.trim() || item.name, amount: nextAmount });
-    setEditing(false);
+    const nextName = draftName.trim() || item.name;
+
+    if (tab === "bills") {
+      onSave({ ...item, name: nextName, amount: nextAmount, paid: draftPaid, dueDay: draftDueDay, recurring: draftRecurring });
+    } else if (tab === "subscriptions") {
+      onSave({ ...item, name: nextName, amount: nextAmount, billedOn: draftBilledOn });
+    } else if (tab === "credit") {
+      const limit = Number(draftCreditLimit.replace(/[^0-9.-]+/g, "")) || 0;
+      const minPayment = Number(draftCreditMinPayment.replace(/[^0-9.-]+/g, "")) || 0;
+      const apr = Number(draftCreditApr.replace(/[^0-9.-]+/g, "")) || 0;
+      onSave({ ...item, name: nextName, amount: nextAmount, balance: nextAmount, limit, minPayment, dueDay: draftDueDay, apr });
+    } else {
+      const target = Number(draftSavingsTarget.replace(/[^0-9.-]+/g, "")) || 0;
+      const current = Number(draftSavingsCurrent.replace(/[^0-9.-]+/g, "")) || 0;
+      onSave({ ...item, name: nextName, amount: target, target, current, emoji: draftEmoji, color: draftColor });
+    }
+
+    closeModal();
   };
 
   return (
     <div className="px-4 md:px-5 py-3 flex flex-col gap-2 border-b last:border-b-0 border-border">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            className="text-left min-w-0"
-          >
-            {editing ? (
-              <input
-                value={draftName}
-                onChange={(event) => setDraftName(event.target.value)}
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-navy focus:outline-none focus:ring-2 focus:ring-navy/30"
-              />
-            ) : (
-              <span className="font-display font-medium text-navy text-sm truncate">{item.name}</span>
-            )}
-          </button>
+          <span className="font-display font-medium text-navy text-sm truncate">{item.name}</span>
           {note ? <p className="text-xs text-slate mt-1">{note}</p> : null}
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          {editing ? (
-            <div className="flex items-center gap-2">
-              <input
-                value={draftAmount}
-                onChange={(event) => setDraftAmount(event.target.value)}
-                onKeyDown={(event) => event.key === "Enter" && save()}
-                className="w-24 rounded-lg border border-border bg-background px-3 py-2 text-right text-sm text-navy focus:outline-none focus:ring-2 focus:ring-navy/30"
-              />
-              <button
-                type="button"
-                onClick={save}
-                className="rounded-lg bg-navy px-3 py-1 text-xs font-semibold text-white"
-              >
-                Save
-              </button>
-              <button
-                type="button"
-                onClick={cancel}
-                className="rounded-lg border border-border bg-white px-3 py-1 text-xs font-medium text-slate"
-              >
-                Cancel
-              </button>
-            </div>
-          ) : (
-            <span className="font-mono-data text-sm font-semibold text-navy">{fmt(item.amount, 2)}</span>
-          )}
+          <span className="font-mono-data text-sm font-semibold text-navy">{fmt(item.amount, 2)}</span>
+          <button
+            type="button"
+            onClick={openEditor}
+            className="rounded-full border border-border bg-background p-1.5 text-slate transition hover:text-navy"
+            aria-label={`Edit ${item.name}`}
+          >
+            ✎
+          </button>
+          <button
+            type="button"
+            onClick={() => setModalType("delete")}
+            className="rounded-full border border-border bg-background p-1.5 text-slate transition hover:text-crimson"
+            aria-label={`Delete ${item.name}`}
+          >
+            🗑
+          </button>
         </div>
       </div>
+
+      {modalType === "edit" ? (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-4 py-6 backdrop-blur-sm">
+          <div className="w-full max-w-xl rounded-3xl bg-white p-5 shadow-2xl ring-1 ring-slate-200">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-lg font-semibold text-navy">Edit {tab === "bills" ? "bill" : tab === "subscriptions" ? "subscription" : tab === "credit" ? "credit account" : "savings goal"}</p>
+                <p className="text-sm text-slate">Update the details below and save your changes.</p>
+              </div>
+              <button type="button" onClick={closeModal} className="rounded-full border border-border bg-background px-3 py-2 text-sm font-medium text-slate">Close</button>
+            </div>
+            <div className="mt-5 space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block text-sm font-medium text-slate">
+                  Name
+                  <input
+                    value={draftName}
+                    onChange={(event) => setDraftName(event.target.value)}
+                    className="mt-2 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-navy outline-none focus:border-navy focus:ring-2 focus:ring-navy/20"
+                  />
+                </label>
+                <label className="block text-sm font-medium text-slate">
+                  Amount
+                  <input
+                    value={draftAmount}
+                    onChange={(event) => setDraftAmount(event.target.value)}
+                    className="mt-2 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-navy outline-none focus:border-navy focus:ring-2 focus:ring-navy/20"
+                  />
+                </label>
+              </div>
+
+              {tab === "bills" ? (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="block text-sm font-medium text-slate">
+                    Due day
+                    <input
+                      type="number"
+                      min={1}
+                      max={31}
+                      value={draftDueDay}
+                      onChange={(event) => setDraftDueDay(Number(event.target.value))}
+                      className="mt-2 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-navy outline-none focus:border-navy focus:ring-2 focus:ring-navy/20"
+                    />
+                  </label>
+                  <div className="flex flex-col gap-3">
+                    <label className="flex items-center gap-3 text-sm font-medium text-slate">
+                      <input
+                        type="checkbox"
+                        checked={draftPaid}
+                        onChange={(event) => setDraftPaid(event.target.checked)}
+                        className="h-4 w-4 rounded border-border text-navy focus:ring-navy"
+                      />
+                      Mark as paid
+                    </label>
+                    <label className="flex items-center gap-3 text-sm font-medium text-slate">
+                      <input
+                        type="checkbox"
+                        checked={draftRecurring}
+                        onChange={(event) => setDraftRecurring(event.target.checked)}
+                        className="h-4 w-4 rounded border-border text-navy focus:ring-navy"
+                      />
+                      Recurring payment
+                    </label>
+                  </div>
+                </div>
+              ) : tab === "subscriptions" ? (
+                <label className="block text-sm font-medium text-slate">
+                  Billing frequency
+                  <select
+                    value={draftBilledOn}
+                    onChange={(event) => setDraftBilledOn(event.target.value)}
+                    className="mt-2 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-navy outline-none focus:border-navy focus:ring-2 focus:ring-navy/20"
+                  >
+                    <option>Monthly</option>
+                    <option>Weekly</option>
+                    <option>Quarterly</option>
+                    <option>Annually</option>
+                  </select>
+                </label>
+              ) : tab === "credit" ? (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="block text-sm font-medium text-slate">
+                    Credit limit
+                    <input
+                      value={draftCreditLimit}
+                      onChange={(event) => setDraftCreditLimit(event.target.value)}
+                      className="mt-2 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-navy outline-none focus:border-navy focus:ring-2 focus:ring-navy/20"
+                    />
+                  </label>
+                  <label className="block text-sm font-medium text-slate">
+                    Minimum payment
+                    <input
+                      value={draftCreditMinPayment}
+                      onChange={(event) => setDraftCreditMinPayment(event.target.value)}
+                      className="mt-2 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-navy outline-none focus:border-navy focus:ring-2 focus:ring-navy/20"
+                    />
+                  </label>
+                  <label className="block text-sm font-medium text-slate">
+                    Due day
+                    <input
+                      type="number"
+                      min={1}
+                      max={31}
+                      value={draftDueDay}
+                      onChange={(event) => setDraftDueDay(Number(event.target.value))}
+                      className="mt-2 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-navy outline-none focus:border-navy focus:ring-2 focus:ring-navy/20"
+                    />
+                  </label>
+                  <label className="block text-sm font-medium text-slate">
+                    APR
+                    <input
+                      value={draftCreditApr}
+                      onChange={(event) => setDraftCreditApr(event.target.value)}
+                      className="mt-2 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-navy outline-none focus:border-navy focus:ring-2 focus:ring-navy/20"
+                    />
+                  </label>
+                </div>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="block text-sm font-medium text-slate">
+                    Target
+                    <input
+                      value={draftSavingsTarget}
+                      onChange={(event) => setDraftSavingsTarget(event.target.value)}
+                      className="mt-2 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-navy outline-none focus:border-navy focus:ring-2 focus:ring-navy/20"
+                    />
+                  </label>
+                  <label className="block text-sm font-medium text-slate">
+                    Current saved
+                    <input
+                      value={draftSavingsCurrent}
+                      onChange={(event) => setDraftSavingsCurrent(event.target.value)}
+                      className="mt-2 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-navy outline-none focus:border-navy focus:ring-2 focus:ring-navy/20"
+                    />
+                  </label>
+                  <label className="block text-sm font-medium text-slate">
+                    Emoji
+                    <input
+                      value={draftEmoji}
+                      onChange={(event) => setDraftEmoji(event.target.value)}
+                      className="mt-2 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-navy outline-none focus:border-navy focus:ring-2 focus:ring-navy/20"
+                    />
+                  </label>
+                  <label className="block text-sm font-medium text-slate">
+                    Color
+                    <input
+                      type="color"
+                      value={draftColor}
+                      onChange={(event) => setDraftColor(event.target.value)}
+                      className="mt-2 h-12 w-full rounded-2xl border border-border bg-background p-2 outline-none"
+                    />
+                  </label>
+                </div>
+              )}
+            </div>
+            <div className="mt-6 flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:justify-end">
+              <button type="button" onClick={closeModal} className="rounded-2xl border border-border bg-background px-4 py-3 text-sm font-medium text-slate">Cancel</button>
+              <button type="button" onClick={save} className="rounded-2xl bg-navy px-5 py-3 text-sm font-semibold text-white">Save changes</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {modalType === "delete" ? (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-4 py-6 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-3xl bg-white p-5 shadow-2xl ring-1 ring-slate-200">
+            <p className="text-lg font-semibold text-navy">Delete {tab === "bills" ? "bill" : tab === "subscriptions" ? "subscription" : tab === "credit" ? "credit account" : "savings goal"}</p>
+            <p className="mt-2 text-sm text-slate">Are you sure you want to remove {item.name}? This action cannot be undone.</p>
+            <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <button type="button" onClick={closeModal} className="rounded-2xl border border-border bg-background px-4 py-3 text-sm font-medium text-slate">Cancel</button>
+              <button type="button" onClick={() => { onDelete(item); closeModal(); }} className="rounded-2xl bg-crimson px-4 py-3 text-sm font-semibold text-white">Delete</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
 
-export default function BudgetsPage() {
+type Props = {
+  currentMonthLabel: string;
+  selectedMonth: SelectedMonth;
+  onMonthSelect: (next: SelectedMonth) => void;
+};
+
+export default function BudgetsPage({ currentMonthLabel, selectedMonth, onMonthSelect }: Props) {
   const [tab, setTab] = useState<Tab>("bills");
   const [billsData, setBillsData] = useState<Bill[]>([]);
   const [subsData, setSubsData] = useState<Subscription[]>([]);
@@ -113,6 +307,7 @@ export default function BudgetsPage() {
   const [newAmount, setNewAmount] = useState("0.00");
   const [newPaid, setNewPaid] = useState(false);
   const [newDueDay, setNewDueDay] = useState(1);
+  const [newRecurring, setNewRecurring] = useState(false);
   const [newBilledOn, setNewBilledOn] = useState("Monthly");
   const [newCreditLimit, setNewCreditLimit] = useState("0.00");
   const [newCreditMinPayment, setNewCreditMinPayment] = useState("0.00");
@@ -140,6 +335,20 @@ export default function BudgetsPage() {
   const creditTotal = creditData.reduce((s, c) => s + c.balance, 0);
   const savingsTotal = savingsData.reduce((s, g) => s + g.current, 0);
   const savingsTarget = savingsData.reduce((s, g) => s + g.target, 0);
+  const selectedMonthLabel = new Intl.DateTimeFormat("en-GB", {
+    month: "long",
+    year: "numeric",
+  }).format(new Date(selectedMonth.year, selectedMonth.month, 1));
+  const isViewingCurrentMonth =
+    selectedMonth.year === new Date().getFullYear() && selectedMonth.month === new Date().getMonth();
+  const monthOptions = useMemo(
+    () =>
+      Array.from({ length: 12 }, (_, index) => ({
+        value: index,
+        label: new Intl.DateTimeFormat("en-GB", { month: "short" }).format(new Date(2026, index, 1)),
+      })),
+    []
+  );
 
   if (loading) {
     return <div className="text-slate text-sm font-display">Loading budgets…</div>;
@@ -150,6 +359,7 @@ export default function BudgetsPage() {
     setNewAmount("0.00");
     setNewPaid(false);
     setNewDueDay(1);
+    setNewRecurring(false);
     setNewBilledOn("Monthly");
     setNewCreditLimit("0.00");
     setNewCreditMinPayment("0.00");
@@ -174,6 +384,7 @@ export default function BudgetsPage() {
           amount,
           paid: newPaid,
           dueDay: newDueDay,
+          recurring: newRecurring,
         };
         const created = (await postBudgetItem("bills", payload)) as Bill;
         setBillsData((prev) => [...prev, created]);
@@ -224,17 +435,32 @@ export default function BudgetsPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2 className="font-display font-semibold text-navy text-lg">Budgets</h2>
-          <p className="text-slate text-sm font-display mt-0.5">Monthly budgets — July 2026</p>
+      <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 md:p-5">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="font-display font-semibold text-navy text-lg">Monthly budget — {selectedMonthLabel}</h2>
+            <p className="text-sm text-slate">Select any month in 2026 to review spending for this budget view.</p>
+          </div>
         </div>
-        <button
-          onClick={openAddModal}
-          className="inline-flex items-center justify-center rounded-xl bg-navy px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-900"
-        >
-          + Add new expense
-        </button>
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-6 lg:grid-cols-12">
+          {monthOptions.map((month) => {
+            const isActive = selectedMonth.month === month.value;
+            return (
+              <button
+                key={month.value}
+                type="button"
+                onClick={() => onMonthSelect({ month: month.value, year: 2026 })}
+                className={`rounded-xl border px-2 py-2 text-sm font-medium transition ${
+                  isActive
+                    ? "border-navy bg-navy text-white"
+                    : "border-border bg-background text-slate hover:border-navy hover:text-navy"
+                }`}
+              >
+                {month.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -280,16 +506,12 @@ export default function BudgetsPage() {
             </button>
           ))}
         </div>
-        <p className="text-xs text-slate">Click any budget to edit its name or amount.</p>
+        <p className="text-xs text-slate">Click any budget to edit name or amount.</p>
       </div>
 
       {tab === "bills" && (
         <div className="bg-card border border-border rounded-xl overflow-hidden">
           <div className="px-5 py-4 flex items-center justify-between border-b border-border">
-            <div>
-              <p className="text-sm font-display font-semibold text-navy">Bills</p>
-              <p className="text-xs text-slate font-display">Add a new bill to the database</p>
-            </div>
             <button
               type="button"
               onClick={openAddModal}
@@ -299,17 +521,29 @@ export default function BudgetsPage() {
             </button>
           </div>
           <div className="divide-y divide-border">
-            {billsData.map((b) => (
+            {!isViewingCurrentMonth ? (
+              <div className="px-5 py-6 text-sm text-slate">No budget entries for {selectedMonthLabel} yet.</div>
+            ) : (
+              billsData.map((b) => (
               <EditableBudgetRow
                 key={b.id}
                 item={b}
+                tab="bills"
                 onSave={(next) => {
-                  setBillsData((prev) => prev.map((item) => (item.id === next.id ? next : item)));
-                  putBudgetItem("bills", next.id, next).catch((error) => console.error("Unable to save bill:", error));
+                  setBillsData((prev) => prev.map((item) => (item.id === next.id ? { ...item, ...next } : item)));
+                  putBudgetItem("bills", next.id, { ...next }).catch((error) => console.error("Unable to save bill:", error));
+                  window.dispatchEvent(new CustomEvent("budgetDataChanged", { detail: { type: "bills" } }));
+                }}
+                onDelete={(item) => {
+                  setBillsData((prev) => prev.filter((entry) => entry.id !== item.id));
+                  deleteBudgetItem("bills", item.id)
+                    .catch((error) => console.error("Unable to delete bill:", error));
+                  window.dispatchEvent(new CustomEvent("budgetDataChanged", { detail: { type: "bills" } }));
                 }}
                 note={b.paid ? "Paid" : `Due ${b.dueDay} Jul`}
               />
-            ))}
+              ))
+            )}
           </div>
           <div className="px-5 py-4 bg-background flex items-center justify-between border-t border-border">
             <span className="font-display text-sm text-slate">Total monthly bills</span>
@@ -321,10 +555,6 @@ export default function BudgetsPage() {
       {tab === "subscriptions" && (
         <div className="bg-card border border-border rounded-xl overflow-hidden">
           <div className="px-5 py-4 flex items-center justify-between border-b border-border">
-            <div>
-              <p className="text-sm font-display font-semibold text-navy">Subscriptions</p>
-              <p className="text-xs text-slate font-display">Add a new subscription expense</p>
-            </div>
             <button
               type="button"
               onClick={openAddModal}
@@ -334,17 +564,29 @@ export default function BudgetsPage() {
             </button>
           </div>
           <div className="divide-y divide-border">
-            {subsData.map((s) => (
+            {!isViewingCurrentMonth ? (
+              <div className="px-5 py-6 text-sm text-slate">No budget entries for {selectedMonthLabel} yet.</div>
+            ) : (
+              subsData.map((s) => (
               <EditableBudgetRow
                 key={s.id}
                 item={s}
+                tab="subscriptions"
                 onSave={(next) => {
-                  setSubsData((prev) => prev.map((item) => (item.id === next.id ? next : item)));
-                  putBudgetItem("subscriptions", next.id, next).catch((error) => console.error("Unable to save subscription:", error));
+                  setSubsData((prev) => prev.map((item) => (item.id === next.id ? { ...item, ...next } : item)));
+                  putBudgetItem("subscriptions", next.id, { ...next }).catch((error) => console.error("Unable to save subscription:", error));
+                  window.dispatchEvent(new CustomEvent("budgetDataChanged", { detail: { type: "subscriptions" } }));
+                }}
+                onDelete={(item) => {
+                  setSubsData((prev) => prev.filter((entry) => entry.id !== item.id));
+                  deleteBudgetItem("subscriptions", item.id)
+                    .catch((error) => console.error("Unable to delete subscription:", error));
+                  window.dispatchEvent(new CustomEvent("budgetDataChanged", { detail: { type: "subscriptions" } }));
                 }}
                 note={s.billedOn}
               />
-            ))}
+              ))
+            )}
           </div>
           <div className="px-5 py-4 bg-background flex flex-col gap-1 border-t border-border">
             <div className="flex items-center justify-between">
@@ -362,10 +604,6 @@ export default function BudgetsPage() {
       {tab === "credit" && (
         <div className="bg-card border border-border rounded-xl overflow-hidden">
           <div className="px-5 py-4 flex items-center justify-between border-b border-border">
-            <div>
-              <p className="text-sm font-display font-semibold text-navy">Credit</p>
-              <p className="text-xs text-slate font-display">Add a new credit account or expense</p>
-            </div>
             <button
               type="button"
               onClick={openAddModal}
@@ -375,20 +613,34 @@ export default function BudgetsPage() {
             </button>
           </div>
           <div className="divide-y divide-border">
-            {creditData.map((c) => (
+            {!isViewingCurrentMonth ? (
+              <div className="px-5 py-6 text-sm text-slate">No budget entries for {selectedMonthLabel} yet.</div>
+            ) : (
+              creditData.map((c) => (
               <EditableBudgetRow
                 key={c.id}
                 item={{ ...c, amount: c.balance }}
-                onSave={(next) =>
+                tab="credit"
+                onSave={(next) => {
                   setCreditData((prev) =>
                     prev.map((item) =>
                       item.id === next.id ? { ...item, name: next.name, balance: next.amount } : item
                     )
-                  )
-                }
+                  );
+                  putBudgetItem("credit", next.id, { name: next.name, balance: next.amount })
+                    .catch((error) => console.error("Unable to save credit account:", error));
+                  window.dispatchEvent(new CustomEvent("budgetDataChanged", { detail: { type: "credit" } }));
+                }}
+                onDelete={(item) => {
+                  setCreditData((prev) => prev.filter((entry) => entry.id !== item.id));
+                  deleteBudgetItem("credit", item.id)
+                    .catch((error) => console.error("Unable to delete credit account:", error));
+                  window.dispatchEvent(new CustomEvent("budgetDataChanged", { detail: { type: "credit" } }));
+                }}
                 note={`Due ${c.dueDay} Jul · Limit ${fmt(c.limit, 2)}`}
               />
-            ))}
+              ))
+            )}
           </div>
           <div className="px-5 py-4 bg-background flex items-center justify-between border-t border-border">
             <span className="font-display text-sm text-slate">Total credit outstanding</span>
@@ -400,10 +652,6 @@ export default function BudgetsPage() {
       {tab === "savings" && (
         <div className="bg-card border border-border rounded-xl overflow-hidden">
           <div className="px-5 py-4 flex items-center justify-between border-b border-border">
-            <div>
-              <p className="text-sm font-display font-semibold text-navy">Savings</p>
-              <p className="text-xs text-slate font-display">Add a new savings goal expense</p>
-            </div>
             <button
               type="button"
               onClick={openAddModal}
@@ -413,20 +661,34 @@ export default function BudgetsPage() {
             </button>
           </div>
           <div className="divide-y divide-border">
-            {savingsData.map((s) => (
+            {!isViewingCurrentMonth ? (
+              <div className="px-5 py-6 text-sm text-slate">No budget entries for {selectedMonthLabel} yet.</div>
+            ) : (
+              savingsData.map((s) => (
               <EditableBudgetRow
                 key={s.id}
                 item={{ ...s, amount: s.target }}
-                onSave={(next) =>
+                tab="savings"
+                onSave={(next) => {
                   setSavingsData((prev) =>
                     prev.map((item) =>
                       item.id === next.id ? { ...item, name: next.name, target: next.amount } : item
                     )
-                  )
-                }
+                  );
+                  putBudgetItem("savings", next.id, { name: next.name, target: next.amount })
+                    .catch((error) => console.error("Unable to save savings goal:", error));
+                  window.dispatchEvent(new CustomEvent("budgetDataChanged", { detail: { type: "savings" } }));
+                }}
+                onDelete={(item) => {
+                  setSavingsData((prev) => prev.filter((entry) => entry.id !== item.id));
+                  deleteBudgetItem("savings", item.id)
+                    .catch((error) => console.error("Unable to delete savings goal:", error));
+                  window.dispatchEvent(new CustomEvent("budgetDataChanged", { detail: { type: "savings" } }));
+                }}
                 note={`Saved ${fmt(s.current)} · Target ${fmt(s.target)}`}
               />
-            ))}
+              ))
+            )}
           </div>
           <div className="px-5 py-4 bg-background flex items-center justify-between border-t border-border">
             <span className="font-display text-sm text-slate">Total savings target</span>
@@ -454,7 +716,7 @@ export default function BudgetsPage() {
             <form
               onSubmit={(event) => {
                 event.preventDefault();
-                saveNewItem();
+                void saveNewItem();
               }}
               className="space-y-5 px-6 py-6"
             >
@@ -503,6 +765,15 @@ export default function BudgetsPage() {
                       className="h-4 w-4 rounded border-border text-navy focus:ring-navy"
                     />
                     Mark as paid
+                  </label>
+                  <label className="flex items-center gap-3 text-sm font-medium text-slate">
+                    <input
+                      type="checkbox"
+                      checked={newRecurring}
+                      onChange={(event) => setNewRecurring(event.target.checked)}
+                      className="h-4 w-4 rounded border-border text-navy focus:ring-navy"
+                    />
+                    Recurring payment
                   </label>
                 </div>
               ) : tab === "subscriptions" ? (

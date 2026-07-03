@@ -25,7 +25,7 @@ export default function Sidebar({ active, onNavigate, onClose, names }: SidebarP
   };
 
   return (
-    <aside className="w-56 h-full bg-navy flex flex-col">
+    <aside className="w-56 h-screen bg-navy flex flex-col sticky top-0">
       <div className="px-6 py-7 border-b border-white/10 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 bg-emerald rounded-sm flex items-center justify-center">

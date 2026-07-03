@@ -12,7 +12,8 @@
       "name": "Rent",
       "amount": 1350,
       "paid": true,
-      "dueDay": 1
+      "dueDay": 1,
+      "recurring": true
     },
     {
       "id": "comfam",
@@ -55,41 +56,6 @@
       "amount": 28,
       "paid": false,
       "dueDay": 10
-    },
-    {
-      "id": "bills-1783084549705",
-      "name": "test",
-      "amount": 500,
-      "paid": false,
-      "dueDay": 1
-    },
-    {
-      "id": "bills-1783085139155",
-      "name": "test",
-      "amount": 46,
-      "paid": false,
-      "dueDay": 1
-    },
-    {
-      "id": "bills-1783085876789",
-      "name": "Test Bill",
-      "amount": 42.5,
-      "paid": false,
-      "dueDay": 10
-    },
-    {
-      "id": "bills-1783086538856",
-      "name": "Electricity",
-      "amount": 120,
-      "paid": false,
-      "dueDay": 15
-    },
-    {
-      "id": "bills-1783086671224",
-      "name": "Electricity",
-      "amount": 120,
-      "paid": false,
-      "dueDay": 15
     }
   ],
   "subscriptions": [
@@ -121,6 +87,12 @@
       "id": "icloud",
       "name": "iCloud",
       "amount": 2.99,
+      "billedOn": "Monthly"
+    },
+    {
+      "id": "subscriptions-1783087513810",
+      "name": "test",
+      "amount": 54,
       "billedOn": "Monthly"
     }
   ],
