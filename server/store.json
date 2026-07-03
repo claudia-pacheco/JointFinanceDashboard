@@ -1,0 +1,247 @@
+{
+  "income": {
+    "cp": 2400,
+    "sb": 2400,
+    "cpName": "CP",
+    "sbName": "SB",
+    "payday": 1
+  },
+  "bills": [
+    {
+      "id": "rent",
+      "name": "Rent",
+      "amount": 1350,
+      "paid": true,
+      "dueDay": 1
+    },
+    {
+      "id": "comfam",
+      "name": "Comida Familia",
+      "amount": 280,
+      "paid": true,
+      "dueDay": 3
+    },
+    {
+      "id": "comida",
+      "name": "Comida",
+      "amount": 220,
+      "paid": false,
+      "dueDay": 8
+    },
+    {
+      "id": "transp",
+      "name": "Transporte",
+      "amount": 180,
+      "paid": true,
+      "dueDay": 4
+    },
+    {
+      "id": "ee",
+      "name": "EE",
+      "amount": 32,
+      "paid": true,
+      "dueDay": 5
+    },
+    {
+      "id": "o2",
+      "name": "O2",
+      "amount": 26,
+      "paid": true,
+      "dueDay": 5
+    },
+    {
+      "id": "wifi",
+      "name": "Wi-Fi",
+      "amount": 28,
+      "paid": false,
+      "dueDay": 10
+    },
+    {
+      "id": "bills-1783084549705",
+      "name": "test",
+      "amount": 500,
+      "paid": false,
+      "dueDay": 1
+    },
+    {
+      "id": "bills-1783085139155",
+      "name": "test",
+      "amount": 46,
+      "paid": false,
+      "dueDay": 1
+    },
+    {
+      "id": "bills-1783085876789",
+      "name": "Test Bill",
+      "amount": 42.5,
+      "paid": false,
+      "dueDay": 10
+    },
+    {
+      "id": "bills-1783086538856",
+      "name": "Electricity",
+      "amount": 120,
+      "paid": false,
+      "dueDay": 15
+    },
+    {
+      "id": "bills-1783086671224",
+      "name": "Electricity",
+      "amount": 120,
+      "paid": false,
+      "dueDay": 15
+    }
+  ],
+  "subscriptions": [
+    {
+      "id": "gym",
+      "name": "Gym Better",
+      "amount": 29.99,
+      "billedOn": "Monthly"
+    },
+    {
+      "id": "netflix",
+      "name": "Netflix",
+      "amount": 17.99,
+      "billedOn": "Monthly"
+    },
+    {
+      "id": "amusic",
+      "name": "Apple Music",
+      "amount": 10.99,
+      "billedOn": "Monthly"
+    },
+    {
+      "id": "spot",
+      "name": "Spotify",
+      "amount": 10.99,
+      "billedOn": "Monthly"
+    },
+    {
+      "id": "icloud",
+      "name": "iCloud",
+      "amount": 2.99,
+      "billedOn": "Monthly"
+    }
+  ],
+  "credit": [
+    {
+      "id": "paypal",
+      "name": "PayPal Credit",
+      "balance": 340,
+      "limit": 1000,
+      "minPayment": 25,
+      "dueDay": 14,
+      "apr": 21.9
+    },
+    {
+      "id": "klarna",
+      "name": "Klarna",
+      "balance": 186.5,
+      "limit": 600,
+      "minPayment": 62.17,
+      "dueDay": 20,
+      "apr": 0
+    },
+    {
+      "id": "gold",
+      "name": "Gold",
+      "balance": 1600,
+      "limit": 2000,
+      "minPayment": 48,
+      "dueDay": 18,
+      "apr": 23.5
+    },
+    {
+      "id": "cc",
+      "name": "Credit Card",
+      "balance": 724.3,
+      "limit": 3000,
+      "minPayment": 36,
+      "dueDay": 22,
+      "apr": 23.9
+    }
+  ],
+  "savingsGoals": [
+    {
+      "id": "casa",
+      "name": "Casa",
+      "emoji": "🏠",
+      "target": 25000,
+      "current": 8450,
+      "color": "#0F172A"
+    },
+    {
+      "id": "coche",
+      "name": "Coche",
+      "emoji": "🚗",
+      "target": 8000,
+      "current": 2100,
+      "color": "#059669"
+    },
+    {
+      "id": "emerg",
+      "name": "Emergencia",
+      "emoji": "🛡️",
+      "target": 5000,
+      "current": 3200,
+      "color": "#D97706"
+    },
+    {
+      "id": "claudia",
+      "name": "Claudia",
+      "emoji": "⭐",
+      "target": 5000,
+      "current": 1840,
+      "color": "#7C3AED"
+    },
+    {
+      "id": "samu",
+      "name": "Samu",
+      "emoji": "⭐",
+      "target": 5000,
+      "current": 1420,
+      "color": "#0EA5E9"
+    },
+    {
+      "id": "savings",
+      "name": "Savings",
+      "emoji": "💰",
+      "target": 10000,
+      "current": 4320,
+      "color": "#059669"
+    }
+  ],
+  "monthlyOverview": [
+    {
+      "month": "Jan",
+      "income": 4800,
+      "expenses": 2310
+    },
+    {
+      "month": "Feb",
+      "income": 4800,
+      "expenses": 2180
+    },
+    {
+      "month": "Mar",
+      "income": 4800,
+      "expenses": 2490
+    },
+    {
+      "month": "Apr",
+      "income": 4800,
+      "expenses": 2250
+    },
+    {
+      "month": "May",
+      "income": 4800,
+      "expenses": 2340
+    },
+    {
+      "month": "Jun",
+      "income": 4800,
+      "expenses": 2310
+    }
+  ]
+}

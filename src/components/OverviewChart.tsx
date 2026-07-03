@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   AreaChart,
   Area,
@@ -7,15 +8,37 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { monthlyOverview } from "../data/mockData";
+import { getOverview, type MonthlyOverviewItem } from "../services/api";
 
 const fmt = (v: number) =>
   v >= 1000 ? `£${(v / 1000).toFixed(1)}k` : `£${v}`;
 
 export default function OverviewChart({ totalIncome }: { totalIncome?: number }) {
-  const data = totalIncome
-    ? monthlyOverview.map((m) => ({ ...m, income: totalIncome }))
-    : monthlyOverview;
+  const [monthlyOverview, setMonthlyOverview] = useState<MonthlyOverviewItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getOverview()
+      .then((data) => setMonthlyOverview(data.monthlyOverview))
+      .catch((error) => {
+        console.error("Unable to load overview data:", error);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const data =
+    totalIncome && monthlyOverview.length > 0
+      ? monthlyOverview.map((m) => ({ ...m, income: totalIncome }))
+      : monthlyOverview;
+
+  if (loading) {
+    return (
+      <div className="bg-card border border-border rounded-xl p-4 md:p-5">
+        <p className="text-slate text-sm font-display">Loading cash flow…</p>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-card border border-border rounded-xl p-4 md:p-5 flex flex-col gap-4">
       <div className="flex items-center justify-between">

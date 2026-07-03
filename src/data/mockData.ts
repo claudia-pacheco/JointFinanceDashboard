@@ -20,7 +20,8 @@ export const subscriptions = [
 
 export const credit = [
   { id: "paypal",  name: "PayPal Credit", balance: 340.00, limit: 1000, minPayment: 25,  dueDay: 14, apr: 21.9 },
-  { id: "klarna",  name: "Klarna",        balance: 186.50, limit: 600,  minPayment: 62.17,dueDay: 20, apr: 0    },
+  { id: "klarna",  name: "Klarna",        balance: 186.50, limit: 600,  minPayment: 62.17, dueDay: 20, apr: 0    },
+  { id: "gold",    name: "Gold",          balance: 1600.00, limit: 2000, minPayment: 48, dueDay: 18, apr: 23.5 },
   { id: "cc",      name: "Credit Card",   balance: 724.30, limit: 3000, minPayment: 36,  dueDay: 22, apr: 23.9 },
 ];
 
@@ -56,21 +57,4 @@ export const monthlyOverview = [
   { month: "Apr", income: 4800, expenses: 2250 },
   { month: "May", income: 4800, expenses: 2340 },
   { month: "Jun", income: 4800, expenses: monthlyOut },
-];
-
-// ── Recent transactions ────────────────────────────────────────────────────
-
-export const transactions = [
-  { id: 1,  payee: "Landlord — July Rent", category: "Bills",         amount: -1350.00, date: "Jul 1"  },
-  { id: 2,  payee: "Payroll",              category: "Income",        amount:  4800.00, date: "Jul 1"  },
-  { id: 3,  payee: "Gym Better",           category: "Subscriptions", amount:   -29.99, date: "Jun 30" },
-  { id: 4,  payee: "EE",                   category: "Bills",         amount:   -32.00, date: "Jun 30" },
-  { id: 5,  payee: "O2",                   category: "Bills",         amount:   -26.00, date: "Jun 30" },
-  { id: 6,  payee: "Mercadona",            category: "Comida",        amount:   -94.40, date: "Jun 29" },
-  { id: 7,  payee: "Netflix",              category: "Subscriptions", amount:   -17.99, date: "Jun 28" },
-  { id: 8,  payee: "Klarna — Instalment",  category: "Credit",        amount:   -62.17, date: "Jun 27" },
-  { id: 9,  payee: "Spotify",              category: "Subscriptions", amount:   -10.99, date: "Jun 27" },
-  { id: 10, payee: "Apple Music",          category: "Subscriptions", amount:   -10.99, date: "Jun 26" },
-  { id: 11, payee: "Wi-Fi — Virgin Media", category: "Bills",         amount:   -28.00, date: "Jun 26" },
-  { id: 12, payee: "iCloud 200 GB",        category: "Subscriptions", amount:    -2.99, date: "Jun 25" },
 ];

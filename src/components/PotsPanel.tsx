@@ -1,18 +1,13 @@
-import { useState } from "react";
-import {
-  bills, billsTotal,
-  subscriptions, subsTotal,
-  credit, creditTotal,
-  savingsGoals, savingsTotal,
-} from "../data/mockData";
+import { useEffect, useState } from "react";
+import { getAccounts, type Bill, type Subscription, type CreditAccount, type SavingsGoal } from "../services/api";
 
 type Tab = "bills" | "subscriptions" | "credit" | "savings";
 
 const tabs: { id: Tab; label: string; emoji: string }[] = [
-  { id: "bills",         label: "Bills",         emoji: "🧾" },
+  { id: "bills", label: "Bills", emoji: "🧾" },
   { id: "subscriptions", label: "Subscriptions", emoji: "🔄" },
-  { id: "credit",        label: "Credit",        emoji: "💳" },
-  { id: "savings",       label: "Savings",       emoji: "🏦" },
+  { id: "credit", label: "Credit", emoji: "💳" },
+  { id: "savings", label: "Savings", emoji: "🏦" },
 ];
 
 const fmt = (n: number, decimals = 0) =>
@@ -20,10 +15,38 @@ const fmt = (n: number, decimals = 0) =>
 
 export default function PotsPanel() {
   const [tab, setTab] = useState<Tab>("bills");
+  const [bills, setBills] = useState<Bill[]>([]);
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+  const [credit, setCredit] = useState<CreditAccount[]>([]);
+  const [savingsGoals, setSavingsGoals] = useState<SavingsGoal[]>([]);
+
+  const refreshAccounts = () => {
+    getAccounts()
+      .then((data) => {
+        setBills(data.bills);
+        setSubscriptions(data.subscriptions);
+        setCredit(data.credit);
+        setSavingsGoals(data.savingsGoals);
+      })
+      .catch((error) => {
+        console.error("Unable to load account pots:", error);
+      });
+  };
+
+  useEffect(() => {
+    refreshAccounts();
+    const handleBudgetChange = () => refreshAccounts();
+    window.addEventListener("budgetDataChanged", handleBudgetChange);
+    return () => window.removeEventListener("budgetDataChanged", handleBudgetChange);
+  }, []);
+
+  const billsTotal = bills.reduce((s, b) => s + b.amount, 0);
+  const subsTotal = subscriptions.reduce((s, sItem) => s + sItem.amount, 0);
+  const creditTotal = credit.reduce((s, c) => s + c.balance, 0);
+  const savingsTotal = savingsGoals.reduce((s, g) => s + g.current, 0);
 
   return (
     <div className="bg-card border border-border rounded-xl flex flex-col overflow-hidden">
-      {/* Tab bar */}
       <div className="flex border-b border-border">
         {tabs.map((t) => (
           <button
@@ -42,10 +65,10 @@ export default function PotsPanel() {
       </div>
 
       <div className="p-4 md:p-5 flex-1">
-        {tab === "bills" && <BillsTab />}
-        {tab === "subscriptions" && <SubsTab />}
-        {tab === "credit" && <CreditTab />}
-        {tab === "savings" && <SavingsTab />}
+        {tab === "bills" && <BillsTab bills={bills} billsTotal={billsTotal} />}
+        {tab === "subscriptions" && <SubsTab subscriptions={subscriptions} subsTotal={subsTotal} />}
+        {tab === "credit" && <CreditTab credit={credit} creditTotal={creditTotal} />}
+        {tab === "savings" && <SavingsTab savingsGoals={savingsGoals} savingsTotal={savingsTotal} />}
       </div>
     </div>
   );
@@ -53,7 +76,12 @@ export default function PotsPanel() {
 
 // ── Bills ──────────────────────────────────────────────────────────────────
 
-function BillsTab() {
+type BillsTabProps = {
+  bills: Bill[];
+  billsTotal: number;
+};
+
+function BillsTab({ bills, billsTotal }: BillsTabProps) {
   const billsLeft = bills.filter((b) => !b.paid);
   return (
     <div className="flex flex-col gap-4">
@@ -100,7 +128,12 @@ function BillsTab() {
 
 // ── Subscriptions ──────────────────────────────────────────────────────────
 
-function SubsTab() {
+type SubsTabProps = {
+  subscriptions: Subscription[];
+  subsTotal: number;
+};
+
+function SubsTab({ subscriptions, subsTotal }: SubsTabProps) {
   return (
     <div className="flex flex-col gap-4">
       <div>
@@ -134,7 +167,12 @@ function SubsTab() {
 
 // ── Credit ─────────────────────────────────────────────────────────────────
 
-function CreditTab() {
+type CreditTabProps = {
+  credit: CreditAccount[];
+  creditTotal: number;
+};
+
+function CreditTab({ credit, creditTotal }: CreditTabProps) {
   return (
     <div className="flex flex-col gap-4">
       <div>
@@ -180,7 +218,12 @@ function CreditTab() {
 
 // ── Savings ────────────────────────────────────────────────────────────────
 
-function SavingsTab() {
+type SavingsTabProps = {
+  savingsGoals: SavingsGoal[];
+  savingsTotal: number;
+};
+
+function SavingsTab({ savingsGoals, savingsTotal }: SavingsTabProps) {
   return (
     <div className="flex flex-col gap-4">
       <div>

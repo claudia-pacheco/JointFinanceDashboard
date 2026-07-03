@@ -2,9 +2,7 @@ import { useState } from "react";
 import Sidebar, { type Page } from "./components/Sidebar";
 import OverviewPage from "./pages/OverviewPage";
 import AccountsPage from "./pages/AccountsPage";
-import TransactionsPage from "./pages/TransactionsPage";
 import BudgetsPage from "./pages/BudgetsPage";
-import InvestmentsPage from "./pages/InvestmentsPage";
 import GoalsPage from "./pages/GoalsPage";
 import SettingsPage from "./pages/SettingsPage";
 
@@ -24,9 +22,7 @@ function loadIncome(): Income {
 const pageTitles: Record<Page, string> = {
   overview:     "Joint Account",
   accounts:     "Accounts & Pots",
-  transactions: "Transactions",
   budgets:      "Budgets",
-  investments:  "Investments",
   goals:        "Goals",
   settings:     "Settings",
 };
@@ -97,13 +93,11 @@ export default function App() {
         {/* Page content */}
         <main className="flex-1 overflow-y-auto px-4 md:px-8 py-5 md:py-7">
           <div className="max-w-6xl mx-auto">
-            {page === "overview"     && <OverviewPage totalIncome={totalIncome} />}
-            {page === "accounts"     && <AccountsPage />}
-            {page === "transactions" && <TransactionsPage />}
-            {page === "budgets"      && <BudgetsPage />}
-            {page === "investments"  && <InvestmentsPage />}
-            {page === "goals"        && <GoalsPage />}
-            {page === "settings"     && <SettingsPage income={income} onSave={handleSaveIncome} />}
+            {page === "overview" && <OverviewPage totalIncome={totalIncome} />}
+            {page === "accounts" && <AccountsPage />}
+            {page === "budgets" && <BudgetsPage />}
+            {page === "goals" && <GoalsPage />}
+            {page === "settings" && <SettingsPage income={income} onSave={handleSaveIncome} />}
           </div>
           <div className="h-4 md:h-0" />
         </main>

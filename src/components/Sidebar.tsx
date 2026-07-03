@@ -1,14 +1,12 @@
-type Page = "overview" | "accounts" | "transactions" | "budgets" | "investments" | "goals" | "settings";
+type Page = "overview" | "accounts" | "budgets" | "goals" | "settings";
 
 type NavItem = { label: string; icon: string; id: Page };
 
 const navItems: NavItem[] = [
-  { label: "Overview",     icon: "◈", id: "overview"     },
-  { label: "Accounts",     icon: "◻", id: "accounts"     },
-  { label: "Transactions", icon: "≡", id: "transactions" },
-  { label: "Budgets",      icon: "◫", id: "budgets"      },
-  { label: "Investments",  icon: "△", id: "investments"  },
-  { label: "Goals",        icon: "◎", id: "goals"        },
+  { label: "Overview", icon: "◈", id: "overview" },
+  { label: "Accounts", icon: "◻", id: "accounts" },
+  { label: "Budgets", icon: "◫", id: "budgets" },
+  { label: "Goals", icon: "◎", id: "goals" },
 ];
 
 type SidebarProps = {

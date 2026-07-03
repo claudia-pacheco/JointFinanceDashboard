@@ -1,48 +1,86 @@
-import { bills, subscriptions, credit, savingsGoals, billsTotal, subsTotal, creditTotal, savingsTotal } from "../data/mockData";
+import { useEffect, useState } from "react";
+import { getAccounts, type Bill, type Subscription, type CreditAccount, type SavingsGoal } from "../services/api";
 
 const fmt = (n: number, dec = 0) =>
   "£" + Math.abs(n).toLocaleString("en-GB", { minimumFractionDigits: dec, maximumFractionDigits: dec });
 
-const pots = [
-  {
-    id: "bills",
-    label: "Bills",
-    emoji: "🧾",
-    balance: billsTotal,
-    color: "#0F172A",
-    bg: "#F1F5F9",
-    desc: `${bills.length} items`,
-  },
-  {
-    id: "subs",
-    label: "Subscriptions",
-    emoji: "🔄",
-    balance: subsTotal,
-    color: "#7C3AED",
-    bg: "#F5F3FF",
-    desc: `${subscriptions.length} active`,
-  },
-  {
-    id: "credit",
-    label: "Credit",
-    emoji: "💳",
-    balance: -creditTotal,
-    color: "#DC2626",
-    bg: "#FEF2F2",
-    desc: `${credit.length} accounts`,
-  },
-  {
-    id: "savings",
-    label: "Savings",
-    emoji: "🏦",
-    balance: savingsTotal,
-    color: "#059669",
-    bg: "#ECFDF5",
-    desc: `${savingsGoals.length} goals`,
-  },
-];
-
 export default function AccountsPage() {
+  const [bills, setBills] = useState<Bill[]>([]);
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+  const [credit, setCredit] = useState<CreditAccount[]>([]);
+  const [savingsGoals, setSavingsGoals] = useState<SavingsGoal[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const refreshAccounts = () => {
+    getAccounts()
+      .then((data) => {
+        setBills(data.bills);
+        setSubscriptions(data.subscriptions);
+        setCredit(data.credit);
+        setSavingsGoals(data.savingsGoals);
+      })
+      .catch((error) => {
+        console.error("Unable to load accounts:", error);
+      });
+  };
+
+  useEffect(() => {
+    refreshAccounts();
+    const handleBudgetChange = () => refreshAccounts();
+    window.addEventListener("budgetDataChanged", handleBudgetChange);
+    return () => window.removeEventListener("budgetDataChanged", handleBudgetChange);
+  }, []);
+
+  const billsTotal = bills.reduce((s, b) => s + b.amount, 0);
+  const subsTotal = subscriptions.reduce((s, sItem) => s + sItem.amount, 0);
+  const creditTotal = credit.reduce((s, c) => s + c.balance, 0);
+  const savingsTotal = savingsGoals.reduce((s, g) => s + g.current, 0);
+
+  const pots = [
+    {
+      id: "bills",
+      label: "Bills",
+      emoji: "🧾",
+      balance: billsTotal,
+      color: "#0F172A",
+      bg: "#F1F5F9",
+      desc: `${bills.length} items`,
+    },
+    {
+      id: "subs",
+      label: "Subscriptions",
+      emoji: "🔄",
+      balance: subsTotal,
+      color: "#7C3AED",
+      bg: "#F5F3FF",
+      desc: `${subscriptions.length} active`,
+    },
+    {
+      id: "credit",
+      label: "Credit",
+      emoji: "💳",
+      balance: -creditTotal,
+      color: "#DC2626",
+      bg: "#FEF2F2",
+      desc: `${credit.length} accounts`,
+    },
+    {
+      id: "savings",
+      label: "Savings",
+      emoji: "🏦",
+      balance: savingsTotal,
+      color: "#059669",
+      bg: "#ECFDF5",
+      desc: `${savingsGoals.length} goals`,
+    },
+  ];
+
+  if (loading) {
+    return (
+      <div className="text-slate text-sm font-display">Loading account data…</div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -103,6 +141,52 @@ export default function AccountsPage() {
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Subscriptions detail */}
+      <div className="bg-card border border-border rounded-xl p-5">
+        <div className="mb-4">
+          <p className="text-xs font-display text-slate uppercase tracking-widest font-medium">Subscriptions Pot</p>
+          <p className="font-display font-semibold text-navy mt-0.5">Monthly cost — {fmt(subsTotal, 2)}</p>
+        </div>
+        <div className="divide-y divide-border">
+          {subscriptions.map((s) => (
+            <div key={s.id} className="flex items-center justify-between py-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-2 h-2 rounded-full bg-navy" />
+                <span className="text-sm font-display text-navy">{s.name}</span>
+              </div>
+              <span className="font-mono-data text-sm font-semibold text-navy">{fmt(s.amount, 2)}/mo</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Savings detail */}
+      <div className="bg-card border border-border rounded-xl p-5">
+        <div className="mb-4">
+          <p className="text-xs font-display text-slate uppercase tracking-widest font-medium">Savings Pot</p>
+          <p className="font-display font-semibold text-navy mt-0.5">Saved — {fmt(savingsTotal)}</p>
+        </div>
+        <div className="divide-y divide-border">
+          {savingsGoals.map((goal) => {
+            const pct = Math.round((goal.current / goal.target) * 100);
+            return (
+              <div key={goal.id} className="py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-base">{goal.emoji}</span>
+                    <span className="text-sm font-display text-navy">{goal.name}</span>
+                  </div>
+                  <span className="text-xs font-mono-data text-slate">{pct}%</span>
+                </div>
+                <div className="h-2 bg-border rounded-full overflow-hidden mt-2">
+                  <div className="h-full rounded-full bg-emerald" style={{ width: `${Math.min(pct, 100)}%` }} />
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
